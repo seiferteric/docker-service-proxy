@@ -1,4 +1,5 @@
 #!/bin/sh
+
 HOSTNAME=`hostname`
 
 if [ "$PROXY_PROXY" != "1" ]
@@ -8,6 +9,7 @@ then
   PROXY_SOCKS=""
   for port in $PROXY_PORTS
   do
+    echo "Forwarding port $port to $PROXY_DST"
     rm -f backfifo$port
     mkfifo backfifo$port
     rm -f /var/run/proxy-$HOSTNAME-$port.sock
@@ -17,15 +19,18 @@ then
     PROXY_SOCKS=$PROXY_SOCKS"-v /var/run/proxy-$HOSTNAME-$port.sock:/var/run/proxy-$HOSTNAME-$port.sock "
   done
   
-  echo "RUNNING SECOND PROXY" 
-  exec docker run $PROXY_SOCKS -e PROXY_PORTS="$PROXY_PORTS" -e PROXY_PROXY="1" -e PROXY_HOST="$HOSTNAME" -e PROXY_CMD="$PROXY_CMD" $PROXY_OPTS $PROXY_IMG /proxy.sh
+  echo "RUNNING SECOND PROXY $HOSTNAME" 
+  docker run --rm --name docker-proxy-$HOSTNAME -it $PROXY_SOCKS -e PROXY_PORTS="$PROXY_PORTS" -e PROXY_PROXY="1" -e PROXY_HOST="$HOSTNAME" -e PROXY_CMD="$PROXY_CMD" $PROXY_OPTS $PROXY_IMG sh -c /proxy.sh
 else
   for port in $PROXY_PORTS
   do
+    echo "Forwarding port $port to /var/run/proxy-$PROXY_HOST-$port.sock"
     rm -f backfifo$port
     mkfifo backfifo$port
-    nc -kl $port <backfifo$port | nc -U /var/run/proxy-$PROXY_HOST-$port.sock &
+    nc -kl $port <backfifo$port | nc -U /var/run/proxy-$PROXY_HOST-$port.sock >backfifo$port &
   done 
-  echo "RUNNING COMMAND"
-  $PROXY_CMD
+  echo "RUNNING COMMAND $HOSTNAME"
+  exec $PROXY_CMD
 fi
+
+
