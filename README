@@ -1,0 +1,11 @@
+This docker image allows you to run your container in privleged mode with docker 1.12 swarm serves by using a "proxy" container to run your actual command and proxy tcp requests back to the service container. 
+
+Because dcoker 1.12 swarm services does not currently allow you to run your services with cap-add or privileged or net=host, this is a workaround to do that. 
+
+
+EXAMPLE:
+
+docker run -it -e PROXY_PORTS="80 443" -e PROXY_CMD="sleep 600" -e PROXY_DST="google.com" -v /var/run:/var/run docker-proxy /proxy.sh
+
+
+Where PROXY_CMD is the actual command you want to run
